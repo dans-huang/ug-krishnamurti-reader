@@ -35,7 +35,7 @@ the most reliable way to get reading-position memory.)
 
 ## Features
 
-- **Library** — an editorial, numbered table of the five works + recordings.
+- **Library** — an editorial, numbered table of the six works + recordings.
 - **Reader** — generous serif typography, drop caps, and a dedicated layout for
   the Q&A dialogue (questions vs. U.G.'s answers).
 - **Three themes** — Paper, Sepia, and Ink (dark). Adjustable type size,

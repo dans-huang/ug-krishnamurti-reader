@@ -535,6 +535,26 @@ html[data-theme="ink"] .btn { color: #1a1813; }
 .seg button.active { background: var(--accent); color: #fff; }
 html[data-theme="ink"] .seg button.active { color: #1a1813; }
 
+/* stacked row (label above a full-width segmented control) */
+.pop-row.stack { flex-direction: column; align-items: stretch; gap: .5rem; }
+.pop-row.stack .seg { width: 100%; }
+.pop-row.stack .seg button { flex: 1 1 0; min-width: 0; }
+
+/* reading-shortcut tip */
+.pop-tip { padding: .7rem 0 .1rem; border-top: 1px solid var(--rule-soft); margin-top: .3rem; }
+.pop-tip .pop-label { display: block; margin-bottom: .5rem; }
+.pop-tip p {
+  margin: 0; font-family: var(--sans); font-size: .78rem; line-height: 1.7;
+  color: var(--ink-soft);
+}
+kbd {
+  font-family: var(--sans); font-size: .68rem; font-weight: 600; line-height: 1;
+  display: inline-block; padding: .2em .45em; border-radius: 5px;
+  background: var(--bg-tint); color: var(--ink);
+  border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule);
+  vertical-align: baseline;
+}
+
 .scrim {
   position: fixed; inset: 0; z-index: 65; background: rgba(10,8,5,.42);
   backdrop-filter: blur(2px); opacity: 0; transition: opacity .35s var(--ease);

@@ -67,7 +67,7 @@
     measure: load("ug.measure", "normal")
   };
   var SIZE_SCALE = { "-1": 0.9, "0": 1, "1": 1.12, "2": 1.26 };
-  var MEASURE_REM = { narrow: "34rem", normal: "39rem", wide: "46rem" };
+  var MEASURE_REM = { narrow: "34rem", normal: "39rem", wide: "46rem", wider: "54rem" };
 
   function applySettings() {
     document.documentElement.setAttribute("data-theme", SET.theme);
@@ -402,11 +402,39 @@
   // distance from viewport top where a paragraph's first line should land
   var SNAP_TOP = 112;
 
-  function stepParagraph(dir) {
+  // anchors = primary blocks only (English in EN/雙語, never the .tr translations)
+  function anchorList() {
     var prose = document.querySelector(".prose");
-    if (!prose) return;
-    // anchors = primary blocks only; never the .tr translation paragraphs
-    var anchors = prose.querySelectorAll(":scope > p:not(.tr), :scope > .dialogue");
+    return prose ? prose.querySelectorAll(":scope > p:not(.tr), :scope > .dialogue") : [];
+  }
+
+  // index of the paragraph currently at/above the snap line (the one being read)
+  function currentAnchorIndex() {
+    var as = anchorList();
+    if (!as.length) return -1;
+    var idx = 0;
+    for (var i = 0; i < as.length; i++) {
+      if (as[i].getBoundingClientRect().top <= SNAP_TOP + 4) idx = i; else break;
+    }
+    return idx;
+  }
+
+  // run a layout-changing mutation, keeping the current paragraph at the snap line
+  function preserveAnchor(mutate) {
+    var idx = inReaderView() ? currentAnchorIndex() : -1;
+    mutate();
+    if (idx < 0) return;
+    requestAnimationFrame(function () {
+      var as = anchorList();
+      if (idx < as.length) {
+        var top = as[idx].getBoundingClientRect().top + window.scrollY - SNAP_TOP;
+        window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+      }
+    });
+  }
+
+  function stepParagraph(dir) {
+    var anchors = anchorList();
     if (!anchors.length) return;
     var cur = window.scrollY;
     var EPS = 6;
@@ -563,10 +591,13 @@
   document.getElementById("lang-seg").addEventListener("click", function (e) {
     var btn = e.target.closest("button[data-lang]");
     if (!btn) return;
-    SET.lang = btn.getAttribute("data-lang");
-    save("ug.lang", SET.lang);
-    applySettings();
-    render();   // re-render current view in the new language; keep panel open
+    // re-render in the new language, keeping the current paragraph in place
+    preserveAnchor(function () {
+      SET.lang = btn.getAttribute("data-lang");
+      save("ug.lang", SET.lang);
+      applySettings();
+      render();   // re-render current view; keep panel open
+    });
   });
   document.getElementById("theme-seg").addEventListener("click", segClick("theme", function (v) { SET.theme = v; save("ug.theme", v); }));
   document.getElementById("size-seg").addEventListener("click", segClick("size", function (v) { SET.size = parseInt(v, 10); save("ug.size", v); }));
@@ -577,8 +608,8 @@
     return function (e) {
       var btn = e.target.closest("button[data-" + attr + "]");
       if (!btn) return;
-      fn(btn.getAttribute("data-" + attr));
-      applySettings();
+      // keep the current paragraph anchored across the reflow
+      preserveAnchor(function () { fn(btn.getAttribute("data-" + attr)); applySettings(); });
     };
   }
 

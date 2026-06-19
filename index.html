@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U.G. Krishnamurti — Collected Works</title>
+<meta name="description" content="A reading edition of the five principal books of U.G. Krishnamurti.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div id="progress" class="progress-bar" aria-hidden="true"><span></span></div>
+
+  <header id="topbar" class="topbar" data-context="library">
+    <a class="brand" href="#/" aria-label="Library home">
+      <span class="brand-mark">U·G</span>
+      <span class="brand-text">Krishnamurti</span>
+    </a>
+    <div class="topbar-center" id="topbar-title"></div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="toc-btn" title="Contents (t)" aria-label="Contents" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="settings-btn" title="Reading settings" aria-label="Reading settings">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="7" r="2.4" fill="currentColor"/><circle cx="15" cy="12" r="2.4" fill="currentColor"/><circle cx="8" cy="17" r="2.4" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <!-- Contents drawer -->
+  <aside id="toc-drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <span class="eyebrow">Contents</span>
+      <button class="icon-btn" id="toc-close" aria-label="Close contents">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="toc-list"></div>
+  </aside>
+
+  <!-- Settings popover -->
+  <div id="settings-panel" class="popover" aria-hidden="true">
+    <div class="pop-row">
+      <span class="pop-label">Language</span>
+      <div class="seg" id="lang-seg">
+        <button data-lang="en">EN</button>
+        <button data-lang="bi">雙語</button>
+        <button data-lang="zh">中文</button>
+      </div>
+    </div>
+    <div class="pop-row">
+      <span class="pop-label">Theme</span>
+      <div class="seg" id="theme-seg">
+        <button data-theme="paper">Paper</button>
+        <button data-theme="sepia">Sepia</button>
+        <button data-theme="ink">Ink</button>
+      </div>
+    </div>
+    <div class="pop-row">
+      <span class="pop-label">Type size</span>
+      <div class="seg" id="size-seg">
+        <button data-size="-1">A−</button>
+        <button data-size="0">A</button>
+        <button data-size="1">A+</button>
+        <button data-size="2">A++</button>
+      </div>
+    </div>
+    <div class="pop-row">
+      <span class="pop-label">Reading face</span>
+      <div class="seg" id="face-seg">
+        <button data-face="serif">Serif</button>
+        <button data-face="sans">Sans</button>
+      </div>
+    </div>
+    <div class="pop-row">
+      <span class="pop-label">Column</span>
+      <div class="seg" id="measure-seg">
+        <button data-measure="narrow">Narrow</button>
+        <button data-measure="normal">Normal</button>
+        <button data-measure="wide">Wide</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scrim" class="scrim" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="data.zh.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

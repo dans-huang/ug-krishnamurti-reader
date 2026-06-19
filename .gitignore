@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# regenerable translation intermediates (canonical outputs data.js / data.zh.js are committed)
+i18n/chunks/
+i18n/out/
+
+# logs / scratch
+*.log

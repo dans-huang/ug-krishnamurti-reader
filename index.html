@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
@@ -90,51 +90,17 @@
         <button data-measure="wider">Wider</button>
       </div>
     </div>
-    <div class="pop-row" id="aloud-row">
-      <span class="pop-label">Read aloud</span>
-      <div class="seg" id="aloud-seg">
-        <button data-aloud="off">Off</button>
-        <button data-aloud="on">On</button>
-      </div>
-    </div>
-    <div class="pop-row stack" id="tts-row" hidden>
-      <span class="pop-label">Voice <span class="pop-sub">· neural (Kokoro)</span></span>
-      <select class="voice-select" id="voice-sel" aria-label="Narration voice"></select>
-      <div class="seg" id="rate-seg" style="margin-top:.55rem">
-        <button data-rate="0.8">0.8×</button>
-        <button data-rate="1">1×</button>
-        <button data-rate="1.15">1.15×</button>
-        <button data-rate="1.3">1.3×</button>
-      </div>
-      <p class="pop-note">Neural voice runs on your device. First play downloads
-        the model (~90&nbsp;MB, cached after). 中文 uses the system voice.</p>
-    </div>
     <div class="pop-tip">
       <span class="pop-label">Reading</span>
       <p><kbd>Space</kbd> or click the side margin → next paragraph.<br>
-         <kbd>⇧&nbsp;Shift</kbd>+<kbd>Space</kbd> → previous paragraph.<br>
-         <kbd>P</kbd> or the <b>Listen</b> button → read aloud from here.</p>
+         <kbd>⇧&nbsp;Shift</kbd>+<kbd>Space</kbd> → previous paragraph.</p>
     </div>
-  </div>
-
-  <!-- Read-aloud control -->
-  <div id="tts-bar" class="tts-bar" data-state="idle" hidden>
-    <button class="tts-toggle" id="tts-toggle" aria-label="Read aloud">
-      <svg class="i-play" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
-      <svg class="i-pause" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="6.5" y="5.5" width="3.6" height="13" rx="1" fill="currentColor"/><rect x="13.9" y="5.5" width="3.6" height="13" rx="1" fill="currentColor"/></svg>
-      <span class="tts-spin" aria-hidden="true"></span>
-    </button>
-    <span class="tts-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-    <span class="tts-label" id="tts-label">Listen</span>
-    <button class="tts-stop" id="tts-stop" aria-label="Stop reading" title="Stop">
-      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
-    </button>
   </div>
 
   <div id="scrim" class="scrim" hidden></div>
 
   <script src="data.js"></script>
   <script src="data.zh.js"></script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js"></script>
 </body>
 </html>

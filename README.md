@@ -58,15 +58,23 @@ the most reliable way to get reading-position memory.)
   spot near the top, so you read straight down without hunting or swiping.
   **Shift+Space** steps back. In bilingual mode it snaps the *English*
   paragraphs (the translations ride along beneath).
-- **Read aloud** — press **P** (or the floating **Listen** button) to have the
-  book narrated from wherever you are. It highlights and snaps each paragraph
-  as it reads, then auto-advances through parts like an audiobook. Uses your
-  device's built-in **neural voices** via the Web Speech API — completely free,
-  offline, no account, no loading. It auto-picks the best available voice for
-  the current language (e.g. Samantha/Alex on a Mac, Meijia for Traditional
-  Chinese, Google neural voices on Chrome); you can choose a different voice and
-  the reading speed in the settings panel. Reads English in EN/雙語 mode and
-  Traditional Chinese in 中文 mode.
+- **Read aloud** (off by default — turn it on under **Read aloud** in settings).
+  Once enabled, press **P** or the floating **Listen** button to have the book
+  narrated from wherever you are. It highlights and snaps each paragraph as it
+  reads, synthesizing sentence-by-sentence so audio starts quickly, then
+  auto-advances through parts like an audiobook.
+  - **English (EN / 雙語)** uses **Kokoro-82M**, an open-weights (Apache-2.0)
+    neural TTS that runs **100% in your browser** via
+    [kokoro-js](https://www.npmjs.com/package/kokoro-js) + transformers.js
+    (WebAssembly). Genuinely natural voices — free, no account, no server, and
+    nothing leaves your device. The first time you press play it downloads the
+    model (~90 MB, quantized) and the browser caches it; after that it's offline
+    and instant. Pick from 14 curated voices (US/UK, ♀/♂) in settings.
+  - **Traditional Chinese (中文)** uses the best system voice (e.g. Meijia),
+    because the in-browser Kokoro grapheme-to-phoneme is English-only.
+  - Adjustable reading speed; your voice and speed choices are remembered. If
+    the neural model can't load, it falls back to the system voice so the
+    feature still works.
 - **Contents drawer** + keyboard nav (`←` / `→` between parts, `t` for contents).
 - Fully responsive (desktop / mobile).
 

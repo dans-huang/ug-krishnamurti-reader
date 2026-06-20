@@ -627,6 +627,24 @@ html[data-theme="ink"] .tts-toggle { color: #1a1813; }
 .tts-bar[data-state="playing"] .tts-stop,
 .tts-bar[data-state="paused"]  .tts-stop { display: inline-grid; }
 .tts-stop:hover { background: var(--bg-tint); color: var(--ink); border-color: var(--ink-faint); }
+.tts-bar[data-state="loading"] .tts-stop { display: inline-grid; }
+
+/* loading spinner — shown on first play while the neural model downloads */
+.tts-spin {
+  display: none; width: 18px; height: 18px; box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, #fff 45%, transparent);
+  border-top-color: #fff; border-radius: 50%;
+  animation: ttsSpin .8s linear infinite;
+}
+html[data-theme="ink"] .tts-spin { border-color: color-mix(in srgb, #1a1813 40%, transparent); border-top-color: #1a1813; }
+.tts-bar[data-state="loading"] .tts-toggle .i-play,
+.tts-bar[data-state="loading"] .tts-toggle .i-pause { display: none; }
+.tts-bar[data-state="loading"] .tts-spin { display: block; }
+@keyframes ttsSpin { to { transform: rotate(360deg); } }
+
+/* settings: read-aloud hint + note */
+.pop-sub { font-weight: 500; letter-spacing: .03em; text-transform: none; color: var(--ink-faint); }
+.pop-note { margin: .55rem 0 0; font-family: var(--sans); font-size: .68rem; line-height: 1.55; color: var(--ink-faint); }
 
 /* the paragraph currently being read */
 .prose .speaking {

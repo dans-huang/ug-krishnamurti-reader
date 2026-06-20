@@ -64,7 +64,8 @@
     theme: load("ug.theme", "paper"),
     size: parseInt(load("ug.size", "0"), 10),
     face: load("ug.face", "serif"),
-    measure: load("ug.measure", "normal")
+    measure: load("ug.measure", "normal"),
+    rate: load("ug.rate", "1")
   };
   var SIZE_SCALE = { "-1": 0.9, "0": 1, "1": 1.12, "2": 1.26 };
   var MEASURE_REM = { narrow: "34rem", normal: "39rem", wide: "46rem", wider: "54rem" };
@@ -77,6 +78,7 @@
     document.documentElement.style.setProperty(
       "--reading-face", SET.face === "sans" ? "var(--sans)" : "var(--serif)");
     syncSegs();
+    if (ttsLabel) ttsLabel.textContent = SET.lang === "en" ? "Listen" : "朗讀";
   }
 
   /* ---------- helpers ---------- */
@@ -376,6 +378,9 @@
     }
 
     attachReaderScroll(id, ci);
+
+    // narration carried over from the previous part → resume at the top
+    if (TTS.pending) { TTS.pending = false; requestAnimationFrame(function () { ttsStart(0); }); }
   }
 
   function attachReaderScroll(id, ci) {
@@ -462,6 +467,205 @@
   function overlayOpen() {
     return drawer.classList.contains("open") || pop.classList.contains("open");
   }
+
+  /* ============================================================
+     Read-aloud  (Web Speech API — native, offline, no key, free)
+     Uses the platform's best neural voices: Siri / "Enhanced" /
+     "Premium" on Apple, Google neural on Chrome. Speaks the on-screen
+     anchor paragraphs (English in EN/雙語, Chinese in 中文), highlighting
+     and snapping each to the reading line, and auto-advances chapters.
+     ============================================================ */
+  var TTS = {
+    ok: typeof window.speechSynthesis !== "undefined" &&
+        typeof window.SpeechSynthesisUtterance !== "undefined",
+    voices: [],
+    pick: { en: load("ug.voice.en", ""), zh: load("ug.voice.zh", "") },
+    on: false, paused: false, idx: -1, pending: false, keep: null
+  };
+  var ttsBar = null, ttsLabel = null, voiceSel = null, rateSeg = null;
+
+  function langGroup() { return SET.lang === "zh" ? "zh" : "en"; }
+
+  function loadVoices() {
+    if (!TTS.ok) return;
+    var v = window.speechSynthesis.getVoices() || [];
+    if (v.length) TTS.voices = v;
+    populateVoiceUI();
+  }
+
+  function voiceCands(grp) {
+    return TTS.voices.filter(function (v) {
+      var l = (v.lang || "").toLowerCase();
+      return grp === "zh" ? l.indexOf("zh") === 0 : l.indexOf("en") === 0;
+    });
+  }
+
+  // rank a voice: prefer neural / premium / platform-flagship voices,
+  // then the established single-name reading voices, demote novelty ones
+  function rankVoice(v) {
+    var name = v.name || "";
+    var n = (name + " " + (v.voiceURI || "")).toLowerCase();
+    var l = (v.lang || "").toLowerCase();
+    var s = 0;
+    if (/premium|enhanced|neural|natural/.test(n)) s += 60;   // downloadable hi-fi variants
+    if (/siri/.test(n)) s += 58;
+    if (/\bgoogle\b/.test(n)) s += 40;                        // Chrome neural voices
+    // established, clean-named voices read better for long-form than the
+    // newer per-locale "casual" voices (whose name carries the locale)
+    if (!/[()]/.test(name)) s += 18;
+    else if (!/premium|enhanced/i.test(name)) s -= 10;
+    if (/^alex\b/i.test(name)) s += 16;                       // macOS reading benchmark
+    if (v.localService) s += 6;                               // offline = no lag
+    if (l === "zh-tw") s += 22; else if (l === "zh-hk") s += 6;
+    if (l === "en-us" || l === "en-gb" || l === "en-au") s += 8;
+    // demote low-fi "compact" and Apple novelty / character voices
+    if (/compact|eloquence|fred|albert|zarvox|trinoids|whisper|wobble|bells|boing|bubbles|cellos|organ|jester|superstar|bahh|deranged|hysterical|bad news|good news|pipe|rocko|grandma|grandpa|\breed\b|sandy|shelley|\bflo\b|\beddy\b|junior|ralph|kathy/.test(n)) s -= 70;
+    return s;
+  }
+  function rankedCands(grp) {
+    return voiceCands(grp).slice().sort(function (a, b) { return rankVoice(b) - rankVoice(a); });
+  }
+  function currentVoice() {
+    var grp = langGroup(), cands = voiceCands(grp);
+    if (!cands.length) return null;
+    var pref = TTS.pick[grp];
+    if (pref) { for (var i = 0; i < cands.length; i++) if (cands[i].voiceURI === pref) return cands[i]; }
+    return rankedCands(grp)[0] || cands[0];
+  }
+
+  function populateVoiceUI() {
+    if (!ttsBar) return;
+    var row = document.getElementById("tts-row");
+    if (!TTS.ok) { if (row) row.hidden = true; return; }
+    if (row) row.hidden = false;
+    if (!voiceSel) return;
+    var grp = langGroup(), cands = rankedCands(grp), cur = currentVoice();
+    var seen = {};
+    voiceSel.innerHTML = cands.map(function (v) {
+      var name = (v.name || "").replace(/\s*\(.*\)\s*$/, "").trim() || v.name;
+      if (seen[name]) return "";          // collapse per-locale duplicates (Eddy, Flo…)
+      seen[name] = 1;
+      var sel = cur && v.voiceURI === cur.voiceURI ? " selected" : "";
+      return '<option value="' + esc(v.voiceURI) + '"' + sel + ">" + esc(name) + "</option>";
+    }).join("") || '<option value="">' + (grp === "zh" ? "（無中文語音）" : "(no voices)") + "</option>";
+    setSeg("rate-seg", "rate", SET.rate);
+  }
+
+  // text of an anchor: dialogue → just the spoken line (skip Q/U.G. label
+  // and the .d-tr translation); prose <p> → its text
+  function ttsTextOf(el) {
+    if (!el) return "";
+    if (el.classList && el.classList.contains("dialogue")) {
+      var d = el.querySelector(".d-text");
+      return d ? d.textContent : "";
+    }
+    return el.textContent || "";
+  }
+
+  // split a paragraph into short utterances → dodges the ~15s engine
+  // cutoff and keeps pause/stop snappy
+  function chunkText(t) {
+    t = String(t || "").replace(/\s+/g, " ").trim();
+    if (!t) return [];
+    var parts = t.match(/[^.!?。！？…;:]+[.!?。！？…;:]+[”’")\]]*|\S[^.!?。！？…;:]*$/g) || [t];
+    var out = [], cur = "";
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim(); if (!p) continue;
+      if (cur && (cur + " " + p).length > 180) { out.push(cur); cur = p; }
+      else cur = cur ? cur + " " + p : p;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  function scrollToAnchor(el) {
+    var top = el.getBoundingClientRect().top + window.scrollY - SNAP_TOP;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  }
+  function clearSpeaking() {
+    var prev = document.querySelector(".prose .speaking");
+    if (prev) prev.classList.remove("speaking");
+  }
+  function setTtsState(state) {
+    if (!ttsBar) return;
+    ttsBar.setAttribute("data-state", state);
+    if (ttsLabel) ttsLabel.textContent = SET.lang === "en" ? "Listen" : "朗讀";
+  }
+
+  function speakIndex(i) {
+    if (!TTS.on) return;
+    var anchors = anchorList();
+    if (i >= anchors.length) { ttsAdvanceChapter(); return; }
+    if (i < 0) i = 0;
+    TTS.idx = i;
+    var el = anchors[i];
+    clearSpeaking();
+    el.classList.add("speaking");
+    scrollToAnchor(el);
+    var chunks = chunkText(ttsTextOf(el));
+    if (!chunks.length) { speakIndex(i + 1); return; }   // empty fragment → skip
+    var voice = currentVoice();
+    for (var c = 0; c < chunks.length; c++) {
+      var u = new window.SpeechSynthesisUtterance(chunks[c]);
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
+      else u.lang = langGroup() === "zh" ? "zh-TW" : "en-US";
+      u.rate = parseFloat(SET.rate) || 1;
+      u.pitch = 1;
+      if (c === chunks.length - 1) {
+        u.onend = function () { if (TTS.on && !TTS.paused) speakIndex(TTS.idx + 1); };
+      }
+      window.speechSynthesis.speak(u);
+    }
+  }
+
+  function ttsStart(fromIdx) {
+    if (!TTS.ok) return;
+    window.speechSynthesis.cancel();
+    TTS.on = true; TTS.paused = false;
+    setTtsState("playing");
+    startKeepAlive();
+    var start = (typeof fromIdx === "number") ? fromIdx : Math.max(0, currentAnchorIndex());
+    speakIndex(start);
+  }
+  function ttsToggle() {
+    if (!TTS.ok) return;
+    if (!TTS.on) { ttsStart(); return; }
+    if (TTS.paused) { window.speechSynthesis.resume(); TTS.paused = false; setTtsState("playing"); }
+    else { window.speechSynthesis.pause(); TTS.paused = true; setTtsState("paused"); }
+  }
+  function ttsStop() {
+    if (!TTS.ok) return;
+    TTS.on = false; TTS.paused = false; TTS.idx = -1;
+    stopKeepAlive();
+    window.speechSynthesis.cancel();
+    clearSpeaking();
+    setTtsState("idle");
+  }
+  function ttsAdvanceChapter() {
+    var m = (location.hash || "").match(/^#\/read\/([^/]+)\/(\d+)/);
+    if (m) {
+      var b = byId[m[1]], ci = parseInt(m[2], 10);
+      if (b && ci < b.chapters.length - 1) {
+        TTS.pending = true;                 // keep narrating into the next part
+        window.speechSynthesis.cancel(); stopKeepAlive();
+        location.hash = "#/read/" + b.id + "/" + (ci + 1);
+        return;
+      }
+    }
+    ttsStop();   // end of book / recording
+  }
+
+  // some engines stall after ~15s of continuous speech; a periodic
+  // pause→resume keeps the queue alive without dropping audio
+  function startKeepAlive() {
+    stopKeepAlive();
+    TTS.keep = setInterval(function () {
+      if (TTS.on && !TTS.paused && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause(); window.speechSynthesis.resume();
+      }
+    }, 10000);
+  }
+  function stopKeepAlive() { if (TTS.keep) { clearInterval(TTS.keep); TTS.keep = null; } }
 
   /* ---------- recordings ---------- */
   function recTitle(r) {
@@ -563,6 +767,8 @@
     setSeg("size-seg", "size", String(SET.size));
     setSeg("face-seg", "face", SET.face);
     setSeg("measure-seg", "measure", SET.measure);
+    setSeg("rate-seg", "rate", SET.rate);
+    if (TTS.ok) populateVoiceUI();
   }
   function setSeg(segId, attr, val) {
     var seg = document.getElementById(segId);
@@ -578,6 +784,7 @@
   function setContext(ctx) {
     topbar.setAttribute("data-context", ctx);
     if (ctx !== "reader") { tocBtn.hidden = true; topbarTitle.textContent = ""; detachReaderScroll(); progressBar.style.width = "0%"; }
+    if (ttsBar) ttsBar.hidden = !(TTS.ok && ctx === "reader");
   }
 
   document.getElementById("toc-btn").addEventListener("click", openDrawer);
@@ -591,6 +798,7 @@
   document.getElementById("lang-seg").addEventListener("click", function (e) {
     var btn = e.target.closest("button[data-lang]");
     if (!btn) return;
+    ttsStop();   // language switch rebuilds the prose; halt narration first
     // re-render in the new language, keeping the current paragraph in place
     preserveAnchor(function () {
       SET.lang = btn.getAttribute("data-lang");
@@ -603,6 +811,37 @@
   document.getElementById("size-seg").addEventListener("click", segClick("size", function (v) { SET.size = parseInt(v, 10); save("ug.size", v); }));
   document.getElementById("face-seg").addEventListener("click", segClick("face", function (v) { SET.face = v; save("ug.face", v); }));
   document.getElementById("measure-seg").addEventListener("click", segClick("measure", function (v) { SET.measure = v; save("ug.measure", v); }));
+
+  /* ---------- read-aloud wiring ---------- */
+  ttsBar = document.getElementById("tts-bar");
+  ttsLabel = document.getElementById("tts-label");
+  voiceSel = document.getElementById("voice-sel");
+  rateSeg = document.getElementById("rate-seg");
+
+  if (TTS.ok) {
+    document.getElementById("tts-toggle").addEventListener("click", function (e) { e.stopPropagation(); ttsToggle(); });
+    document.getElementById("tts-stop").addEventListener("click", function (e) { e.stopPropagation(); ttsStop(); });
+    voiceSel.addEventListener("change", function () {
+      var grp = langGroup();
+      TTS.pick[grp] = voiceSel.value; save("ug.voice." + grp, voiceSel.value);
+      if (TTS.on) ttsStart(TTS.idx < 0 ? 0 : TTS.idx);   // re-read current paragraph in the new voice
+    });
+    rateSeg.addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-rate]");
+      if (!btn) return;
+      SET.rate = btn.getAttribute("data-rate"); save("ug.rate", SET.rate);
+      setSeg("rate-seg", "rate", SET.rate);
+      if (TTS.on) ttsStart(TTS.idx < 0 ? 0 : TTS.idx);   // apply the new speed immediately
+    });
+    if (typeof window.speechSynthesis.addEventListener === "function") {
+      window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    } else { window.speechSynthesis.onvoiceschanged = loadVoices; }
+    window.addEventListener("pagehide", ttsStop);
+    loadVoices();
+  } else {
+    var ttsRow = document.getElementById("tts-row");
+    if (ttsRow) ttsRow.hidden = true;
+  }
 
   function segClick(attr, fn) {
     return function (e) {
@@ -624,6 +863,10 @@
       e.preventDefault();
       stepParagraph(e.shiftKey ? -1 : 1);
       return;
+    }
+    // P → toggle read-aloud from the current paragraph
+    if ((e.key === "p" || e.key === "P") && inReaderView() && !overlayOpen()) {
+      e.preventDefault(); ttsToggle(); return;
     }
     var m = (location.hash || "").match(/^#\/read\/([^/]+)\/(\d+)/);
     if (e.key === "t" && topbar.getAttribute("data-context") === "reader") { e.preventDefault(); drawer.classList.contains("open") ? closeDrawer() : openDrawer(); return; }
@@ -663,6 +906,7 @@
   }
   function route() {
     closeDrawer(); closePop();
+    if (!TTS.pending) ttsStop();   // stop narration on real navigation (not auto-advance)
     render();
   }
 

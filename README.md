@@ -58,6 +58,15 @@ the most reliable way to get reading-position memory.)
   spot near the top, so you read straight down without hunting or swiping.
   **Shift+Space** steps back. In bilingual mode it snaps the *English*
   paragraphs (the translations ride along beneath).
+- **Read aloud** — press **P** (or the floating **Listen** button) to have the
+  book narrated from wherever you are. It highlights and snaps each paragraph
+  as it reads, then auto-advances through parts like an audiobook. Uses your
+  device's built-in **neural voices** via the Web Speech API — completely free,
+  offline, no account, no loading. It auto-picks the best available voice for
+  the current language (e.g. Samantha/Alex on a Mac, Meijia for Traditional
+  Chinese, Google neural voices on Chrome); you can choose a different voice and
+  the reading speed in the settings panel. Reads English in EN/雙語 mode and
+  Traditional Chinese in 中文 mode.
 - **Contents drawer** + keyboard nav (`←` / `→` between parts, `t` for contents).
 - Fully responsive (desktop / mobile).
 
